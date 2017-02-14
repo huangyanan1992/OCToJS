@@ -1,0 +1,74 @@
+<!doctype html>
+<html><head>
+    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<style type='text/css'>
+		html { font-family:Helvetica; color:#222; }
+		h1 { color:steelblue; font-size:24px; margin-top:24px; }
+		button { margin:0 3px 10px; font-size:12px; }
+		.logLine { border-bottom:1px solid #ccc; padding:4px 2px; font-family:courier; font-size:11px; }
+	</style>
+</head><body>
+	<h1>首汽约车JS和本地OC交互Demo</h1>
+	<script>
+	window.onerror = function(err) {
+		log('window.onerror: ' + err)
+	}
+
+    /*
+     Copy and paste setupWebViewJavascriptBridge into your JS:
+     */
+    function setupWebViewJavascriptBridge(callback) {
+        if (window.WebViewJavascriptBridge) { return callback(WebViewJavascriptBridge); }
+        if (window.WVJBCallbacks) { return window.WVJBCallbacks.push(callback); }
+        window.WVJBCallbacks = [callback];
+        var WVJBIframe = document.createElement('iframe');
+        WVJBIframe.style.display = 'none';
+        WVJBIframe.src = 'wvjbscheme://__BRIDGE_LOADED__';
+        document.documentElement.appendChild(WVJBIframe);
+        setTimeout(function() { document.documentElement.removeChild(WVJBIframe) }, 0)
+    }
+
+    /*
+     call setupWebViewJavascriptBridge and then use the bridge to register handlers and call ObjC handlers
+     */
+    setupWebViewJavascriptBridge(function(bridge) {
+                                 
+        /* Initialize your app here */
+		var uniqueId = 1
+		function log(message, data) {
+			var log = document.getElementById('log')
+			var el = document.createElement('div')
+			el.className = 'logLine'
+			el.innerHTML = uniqueId++ + '. ' + message + ':<br/>' + JSON.stringify(data)
+			if (log.children.length) { log.insertBefore(el, log.children[0]) }
+			else { log.appendChild(el) }
+		}
+
+        /* Register a handler in JS */
+		bridge.registerHandler('SQJavascriptHandler', function(data, responseCallback) {
+                               
+			log('ObjC called SQJavascriptHandler with', data)
+			var responseData = { 'Javascript说':'收到首汽约车的消息啦~~!我爱你！' }
+			log('JS responding with', responseData)
+			responseCallback(responseData)
+		})
+
+		document.body.appendChild(document.createElement('br'))
+
+		var callbackButton = document.getElementById('buttons').appendChild(document.createElement('button'))
+		callbackButton.innerHTML = '对首汽约车说我爱你'
+		callbackButton.onclick = function(e) {
+                                 
+			e.preventDefault()
+			log('JS called SQObjcHandler with', '首汽约车我爱你！')
+            /* call a OC handler: */
+			bridge.callHandler('SQObjcHandler', {'Javascript说': '首汽约车我爱你！能收到我消息吗？'}, function(response) {
+                               
+				log('ObjC responding with', response)
+			})
+		}
+	})
+	</script>
+	<div id='buttons'></div> <div id='log'></div>
+</body></html>
